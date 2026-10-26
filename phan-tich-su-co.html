@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Làm sao phân tích sự cố hiệu quả?</title>
+<style>
+:root{--bg:#f6f7f9;--sf:#fff;--tx:#1b2433;--mu:#5d6778;--ln:#dde1e8;--ac:#0f6b64;--acs:#e1f1ef;--wn:#fff4dc;--wnl:#b45309;--cd:#f0f2f5;color-scheme:light}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10151d;--sf:#171d27;--tx:#e6e9ef;--mu:#9aa5b6;--ln:#2a3342;--ac:#4fd1c5;--acs:#12312f;--wn:#33280f;--wnl:#f0b45a;--cd:#1e2633;color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--tx);font:16px/1.65 "Segoe UI","Helvetica Neue",Arial,sans-serif;display:flex}
+nav{width:280px;flex:none;height:100%;overflow:auto;background:var(--sf);border-right:1px solid var(--ln);padding:20px 12px}
+nav h1{font-size:17px;line-height:1.3;margin:0 8px 16px}
+nav h2{font-size:13px;color:var(--mu);font-weight:600;margin:18px 8px 6px}
+nav a{display:block;padding:7px 10px;border-radius:6px;color:var(--tx);text-decoration:none;font-size:14.5px;border-left:3px solid transparent}
+nav a:hover{background:var(--cd)}
+nav a.on{background:var(--acs);border-left-color:var(--ac);color:var(--ac);font-weight:600}
+main{flex:1;height:100%;overflow:auto;padding:36px 44px 64px}
+article{max-width:780px;margin:0 auto}
+section{display:none}section.on{display:block}
+h2.t{font-size:30px;line-height:1.25;margin:0 0 6px}
+.lead{color:var(--mu);margin:0 0 22px}
+h3{font-size:19px;margin:28px 0 8px}
+p,li{max-width:70ch}
+ul,ol{padding-left:22px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14.5px;display:block;overflow-x:auto}
+th,td{border:1px solid var(--ln);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--cd)}
+.hint{background:var(--wn);border-left:4px solid var(--wnl);padding:10px 14px;border-radius:6px;margin:16px 0}
+.hint.ok{background:var(--acs);border-color:var(--ac)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.cols>div{background:var(--cd);border-radius:8px;padding:4px 16px 8px}
+.cols h3{margin-top:12px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:14px 0;font-size:14px}
+.flow span{background:var(--cd);border:1px solid var(--ln);border-radius:6px;padding:5px 10px}
+.flow span.hl{background:var(--acs);border-color:var(--ac);font-weight:600}
+.flow i{color:var(--mu);font-style:normal}
+.steps{counter-reset:s;list-style:none;padding:0}
+.steps li{counter-increment:s;position:relative;padding:2px 0 12px 44px;border-left:2px solid var(--ln);margin-left:14px}
+.steps li:before{content:counter(s);position:absolute;left:-15px;top:0;width:28px;height:28px;border-radius:50%;background:var(--ac);color:var(--sf);font-weight:700;text-align:center;line-height:28px;font-size:14px}
+.steps b{display:block}
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 0}
+.tabs button{font:inherit;font-size:14px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);padding:6px 12px;border-radius:6px;cursor:pointer}
+.tabs button.on{background:var(--ac);color:var(--sf);border-color:var(--ac)}
+.pane{display:none;background:var(--cd);border-radius:8px;padding:6px 18px 12px;margin-top:8px}.pane.on{display:block}
+pre{background:var(--cd);padding:14px;border-radius:8px;overflow:auto;font-size:13.5px;line-height:1.5}
+label.ck{display:block;padding:4px 0}
+.pn{display:flex;justify-content:space-between;gap:10px;margin-top:40px;border-top:1px solid var(--ln);padding-top:16px}
+.pn a{color:var(--ac);text-decoration:none;font-weight:600}
+#mb{display:none}
+a:focus-visible,button:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+@media(max-width:820px){
+ body{display:block}
+ nav{position:fixed;z-index:5;left:-300px;top:0;width:280px;transition:left .2s}
+ nav.open{left:0;box-shadow:0 0 0 100vmax rgba(0,0,0,.4)}
+ main{height:auto;min-height:100%;padding:64px 18px 48px}
+ #mb{display:block;position:fixed;z-index:4;top:10px;left:10px;font:inherit;padding:7px 12px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);border-radius:6px}
+ .cols{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){nav{transition:none}}
+</style>
+</head>
+<body>
+<button id="mb" aria-label="Mở menu">Menu</button>
+<nav id="nav"></nav>
+<main id="main"><article>
+
+<section id="home">
+<h2 class="t">Làm sao phân tích sự cố hiệu quả?</h2>
+<p class="lead">Hiểu điều gì đã xảy ra, tìm nguyên nhân gốc rễ, rút bài học và chặn sự cố lặp lại.</p>
+<p>Phân tích sự cố là bước thứ 3 trong quy trình quản lý sự cố:</p>
+<div class="flow"><span>1. Theo dõi, phát hiện</span><i>›</i><span>2. Xử lý nhanh</span><i>›</i><span class="hl">3. Phân tích sự cố</span><i>›</i><span>4. Khắc phục, phòng ngừa</span><i>›</i><span>5. Truyền thông, đào tạo</span></div>
+<h3>Quy trình phân tích 6 bước</h3>
+<div class="flow"><span>Mô tả</span><i>›</i><span>Xác định vấn đề</span><i>›</i><span>5Why</span><i>›</i><span>5M</span><i>›</i><span>Bài học</span><i>›</i><span>Phòng ngừa</span></div>
+<div class="hint">Mọi số liệu, tên người, ngày tháng trong ví dụ đều là <b>giả định</b> để minh họa.</div>
+<p>Chọn một mục ở menu bên trái. Đang viết hồ sơ thì bắt đầu từ <a href="#b1">Bước 1</a>; muốn xem mẫu thì mở <a href="#vd">Ví dụ hoàn chỉnh</a>.</p>
+</section>
+
+<section id="vaitro">
+<h2 class="t">Vai trò của phân tích sự cố</h2>
+<p class="lead">Xử lý nhanh giúp dừng thiệt hại. Phân tích giúp ngăn thiệt hại lặp lại.</p>
+<ul><li>Hiểu diễn biến thực tế của sự cố.</li><li>Xác định vấn đề ở từng khâu.</li><li>Chỉ ra nguyên nhân gốc rễ.</li><li>Rút bài học và biện pháp phòng ngừa.</li></ul>
+<div class="hint ok">Giá trị của hồ sơ nằm ở <b>bài học</b> và <b>biện pháp phòng ngừa</b> áp dụng mở rộng được cho nhóm, sản phẩm khác, không phải ở việc kể lại sự cố.</div>
+<h3>Một hồ sơ gồm 4 phần</h3>
+<table><tr><th>Phần</th><th>Nội dung</th></tr>
+<tr><td><b>Mô tả sự cố</b></td><td>Trigger và biểu hiện; diễn biến theo thời gian; phạm vi, mức độ ảnh hưởng</td></tr>
+<tr><td><b>Nguyên nhân gốc rễ</b></td><td>Phân tích bằng 5Why; phân loại bằng 5M</td></tr>
+<tr><td><b>Bài học kinh nghiệm</b></td><td>Kinh nghiệm phát hiện, xử lý nhanh; kinh nghiệm về phương pháp, kỹ thuật, kỹ năng</td></tr>
+<tr><td><b>Biện pháp phòng ngừa</b></td><td>Làm sao không lặp lại; cập nhật quy trình nào; rà soát hệ thống khác</td></tr></table>
+<h3>Khi nào cần hồ sơ đầy đủ?</h3>
+<table><tr><th>Mức</th><th>Dấu hiệu</th><th>Mức phân tích</th></tr>
+<tr><td>Nghiêm trọng</td><td>Nhiều khách hàng, mất/sai dữ liệu, gián đoạn dài</td><td>Hồ sơ đầy đủ, họp rút kinh nghiệm</td></tr>
+<tr><td>Trung bình</td><td>Một nhóm người dùng, có cách khắc phục tạm</td><td>Rút gọn: mô tả, 5Why, phòng ngừa</td></tr>
+<tr><td>Nhẹ, lặp lại</td><td>Ít ảnh hưởng nhưng xảy ra nhiều lần</td><td>Gộp nhóm, phân tích xu hướng</td></tr></table>
+</section>
+
+<section id="sailam">
+<h2 class="t">Các sai lầm thường gặp</h2>
+<p class="lead">Phần lớn hồ sơ chưa đạt chất lượng vì mắc một trong các lỗi sau.</p>
+<table><tr><th>Sai lầm</th><th>Dấu hiệu</th><th>Cách tránh</th></tr>
+<tr><td>Mô tả dài dòng</td><td>Không tóm tắt được trong 1 phút</td><td>Viết câu tóm tắt đầu; chi tiết phụ vào phụ lục</td></tr>
+<tr><td>Mô tả sơ sài</td><td>"Nhiều", "lâu" mà không có số</td><td>Thêm thời điểm, số khách hàng, tỷ lệ lỗi, thời gian</td></tr>
+<tr><td>Sa vào tiểu tiết kỹ thuật</td><td>Gốc rễ là "sai tham số X"</td><td>Hỏi tiếp: vì sao sai tham số không bị chặn?</td></tr>
+<tr><td>Đổ lỗi khách quan</td><td>"Do công cụ/tài liệu/bên thứ 3"</td><td>Hỏi: ta đã làm gì để giảm rủi ro đó?</td></tr>
+<tr><td>Bỏ sót yếu tố chủ quan</td><td>Không nhắc quy trình, năng lực</td><td>Có quy trình chưa? Có tuân thủ không? Năng lực đủ không?</td></tr>
+<tr><td>Bài học, phòng ngừa sai</td><td>Biện pháp không liên quan nguyên nhân</td><td>Lập bảng truy vết nguyên nhân – bài học – biện pháp</td></tr>
+<tr><td>Phân công không rõ</td><td>Task thiếu người hoặc hạn</td><td>Nội dung, người, hạn, tiêu chí hoàn thành</td></tr>
+<tr><td>Chỉ trích cá nhân</td><td>Nêu tên người làm sai</td><td>Hỏi về hệ thống, không về con người</td></tr></table>
+</section>
+
+<section id="b1">
+<h2 class="t">Bước 1: Mô tả sự cố</h2>
+<p class="lead">Nền móng của hồ sơ: sai ở đây thì phân tích phía sau lệch theo.</p>
+<h3>Nội dung cần có</h3>
+<ol class="steps"><li><b>Trigger và biểu hiện</b>Trigger: điều kích hoạt (release, đổi cấu hình, tăng tải...). Biểu hiện: người dùng, hệ thống thấy gì.</li>
+<li><b>Diễn biến theo thời gian</b>Bắt đầu xảy ra, phát hiện, xử lý, khắc phục xong.</li>
+<li><b>Phạm vi, mức độ ảnh hưởng</b>Bao nhiêu khách hàng, chức năng; nặng đến đâu; kéo dài bao lâu.</li></ol>
+<h3>Ngắn gọn, định lượng, trực quan</h3>
+<div class="cols"><div><h3>Chưa tốt</h3><p>"Hệ thống chậm một lúc, nhiều khách hàng phản ánh. Sau đó hệ thống bình thường lại."</p></div>
+<div><h3>Tốt</h3><p>"08:41–09:07 ngày 14/03 (26 phút), 1.200 khách hàng (~8% người dùng hoạt động) không đăng nhập được. Tỷ lệ request lỗi tăng từ 0,2% lên 37%."</p></div></div>
+<div class="hint">Dùng số liệu để loại trừ giả thuyết: "1 pod dùng 0,015 core / 291 MiB, giới hạn 0,5 core / 500 MiB (3% CPU, 58% RAM), nên loại trừ nguyên nhân thiếu tài nguyên."</div>
+<h3>Nguồn thu thập</h3>
+<table><tr><th>Cần mô tả</th><th>Nguồn gợi ý</th></tr>
+<tr><td>Trigger</td><td>Lịch sử deploy, change log, đổi cấu hình, commit/PR gần thời điểm lỗi</td></tr>
+<tr><td>Biểu hiện</td><td>Ticket hỗ trợ, ảnh chụp, error message, log, cảnh báo giám sát</td></tr>
+<tr><td>Mốc thời gian</td><td>Timestamp alert, log, chat xử lý, ticket, deploy/rollback</td></tr>
+<tr><td>Phạm vi, mức độ</td><td>Query log/dữ liệu đếm khách hàng, request lỗi; dashboard CPU, RAM, error rate</td></tr></table>
+<h3>Quy trình thu thập</h3>
+<ol><li>Thu thập sớm: log, dashboard, chat có thể bị ghi đè.</li><li>Lập timeline thô từ alert, chat, ticket, deploy.</li><li>Đối chiếu nhiều nguồn: giờ phát hiện thường khác giờ bắt đầu thực tế.</li><li>Định lượng phạm vi bằng số liệu.</li><li>Hỏi người trực tiếp xử lý.</li><li>Rút gọn, vẽ timeline, chụp biểu đồ trước và sau.</li></ol>
+<table><tr><th>Thời điểm</th><th>Sự kiện</th><th>Nguồn</th></tr>
+<tr><td>08:15</td><td>Triển khai phiên bản mới</td><td>Lịch sử deploy</td></tr>
+<tr><td>08:41</td><td>Tỷ lệ lỗi bắt đầu tăng</td><td>Dashboard</td></tr>
+<tr><td>08:52</td><td>Khách hàng đầu tiên báo lỗi</td><td>Ticket</td></tr>
+<tr><td>09:07</td><td>Rollback xong, lỗi về bình thường</td><td>Deploy, dashboard</td></tr></table>
+<div class="hint">Chỉ nêu <b>sự thật đã xảy ra</b>. Không phân tích nguyên nhân hay quy lỗi ở bước này.</div>
+</section>
+
+<section id="b2">
+<h2 class="t">Bước 2: Xác định vấn đề</h2>
+<p class="lead">Lỗi đến được khách hàng nghĩa là nhiều lớp phòng vệ cùng không chặn được. Hãy xét mọi khâu.</p>
+<div class="hint">Ví dụ, một sự cố đăng nhập sau release có 3 vấn đề: (1) API mới bị gọi liên tục làm treo request; (2) thí điểm diện lớn vẫn không phát hiện lỗi; (3) khắc phục mất 26 phút.</div>
+<h3>Luôn xét ít nhất ba nhóm</h3>
+<table><tr><th>Nhóm</th><th>Câu hỏi cốt lõi</th></tr>
+<tr><td>Lỗi <b>xảy ra</b></td><td>Vì sao lỗi được tạo ra ở phân tích, thiết kế, thi công?</td></tr>
+<tr><td>Lỗi <b>không được phát hiện</b></td><td>Vì sao review, kiểm thử, thí điểm, giám sát không bắt được?</td></tr>
+<tr><td>Lỗi <b>xử lý chậm</b></td><td>Vì sao mất nhiều thời gian phát hiện, chẩn đoán, khắc phục?</td></tr></table>
+<h3>Rà soát từng khâu</h3>
+<p>Với mỗi khâu, ghi: đã làm gì để chặn lỗi, vì sao không chặn được, bằng chứng. Khâu "không có vấn đề" cũng ghi bằng chứng.</p>
+<div class="flow"><span>Phân tích</span><i>›</i><span>Thi công</span><i>›</i><span>Review, kiểm thử</span><i>›</i><span>Thí điểm</span><i>›</i><span>Triển khai</span><i>›</i><span>Giám sát</span><i>›</i><span class="hl">Khách hàng</span></div>
+<p><b>Kết quả:</b> danh sách ngắn các vấn đề, mỗi vấn đề là một câu khẳng định có bằng chứng, và là điểm xuất phát của một chuỗi 5Why.</p>
+</section>
+
+<section id="b3">
+<h2 class="t">Bước 3: Nguyên nhân gốc rễ với 5Why</h2>
+<p class="lead">Hỏi "Tại sao?" liên tiếp (thường ~5 lần) cho đến khi gặp nguyên nhân sửa được.</p>
+<p>Con số 5 chỉ là gợi ý: dừng ở 3 hay hỏi tới 7 đều được, miễn nguyên nhân cuối <b>có thể hành động</b>.</p>
+<h3>Ví dụ: không đăng nhập được sau release</h3>
+<table><tr><th></th><th>Câu hỏi</th><th>Trả lời</th></tr>
+<tr><td>Why 1</td><td>Vì sao không đăng nhập được?</td><td>Request bị treo ở web app</td></tr>
+<tr><td>Why 2</td><td>Vì sao request treo?</td><td>API mới bị gọi liên tục</td></tr>
+<tr><td>Why 3</td><td>Vì sao bị gọi liên tục?</td><td>Logic gọi chưa có giới hạn, xử lý lỗi</td></tr>
+<tr><td>Why 4</td><td>Vì sao test, thí điểm không phát hiện?</td><td>Kịch bản test không bao phủ; thí điểm không đo chỉ số liên quan</td></tr>
+<tr><td>Why 5</td><td>Vì sao kịch bản thiếu?</td><td>Quy trình chưa yêu cầu đánh giá tác động khi thêm API vào luồng đăng nhập</td></tr></table>
+<div class="hint ok"><b>Gốc rễ:</b> thiếu quy định review, kiểm thử cho thay đổi trên luồng quan trọng. Đây là yếu tố phương pháp, sửa được; khác với dừng ở "dev viết code sai".</div>
+<h3>Cách áp dụng hiệu quả</h3>
+<ol class="steps"><li><b>Bắt đầu từ mô tả chính xác</b>Dựa vào sự thật có số liệu ở Bước 1, không phỏng đoán.</li>
+<li><b>Mỗi câu trả lời có bằng chứng</b>Log, metric, code, commit; dùng số liệu loại trừ giả thuyết sai.</li>
+<li><b>Hỏi về hệ thống, không về cá nhân</b>Thay "Vì sao A làm sai?" bằng "Vì sao quy trình để sai sót này lọt qua?".</li>
+<li><b>Chạy nhiều chuỗi</b>Ít nhất: vì sao lỗi xảy ra, vì sao không bị phát hiện; thêm "vì sao xử lý chậm" nếu cần.</li>
+<li><b>Rẽ nhánh</b>Một "why" có thể nhiều đáp án: vẽ thành cây.</li>
+<li><b>Làm theo nhóm</b>Dev, QA, vận hành cùng phân tích.</li>
+<li><b>Biết khi nào dừng</b>Dừng ở nguyên nhân về con người hoặc phương pháp, hành động được. Hỏi tiếp tới "công nghệ có giới hạn" là đi quá xa.</li>
+<li><b>Kiểm tra ngược</b>Đọc từ gốc lên theo dạng "vì... nên...": mỗi bước phải hợp lý.</li></ol>
+<div class="hint"><b>Lỗi thường gặp:</b> dừng ở tiểu tiết kỹ thuật ("sai thông số X" mới là Why 1–2); đổ lỗi khách quan; bỏ sót yếu tố chủ quan; trả lời mơ hồ ("do sơ suất"); chỉ chạy một chuỗi, bỏ nhánh "vì sao không phát hiện".</div>
+</section>
+
+<section id="b4">
+<h2 class="t">Bước 4: Phân loại theo 5M</h2>
+<p class="lead">Biết nguyên nhân dồn vào nhóm nào để chọn đúng biện pháp.</p>
+<table><tr><th>M</th><th>Ý nghĩa</th><th>Ví dụ</th></tr>
+<tr><td><b>Man</b> (Con người)</td><td>Năng lực, kỹ năng, tuân thủ, nhận thức</td><td>Chưa nắm hạn chế của async trong vòng lặp LINQ; bỏ qua bước review</td></tr>
+<tr><td><b>Method</b> (Phương pháp)</td><td>Quy trình, quy định, quy chuẩn</td><td>Chưa có quy định test luồng đăng nhập; thiếu runbook</td></tr>
+<tr><td><b>Machine</b> (Công cụ)</td><td>Hạ tầng, công cụ, framework</td><td>Cấu hình tài nguyên pod, công cụ CI/CD</td></tr>
+<tr><td><b>Material</b> (Đầu vào)</td><td>Dữ liệu, yêu cầu, thư viện</td><td>Dữ liệu bất thường, yêu cầu thiếu, thư viện bên thứ 3</td></tr>
+<tr><td><b>Measurement</b> (Đo lường)</td><td>Theo dõi, cảnh báo, kiểm tra</td><td>Thiếu alert chỉ số liên quan, ngưỡng sai, test thiếu</td></tr></table>
+<p>Một số tổ chức thêm Milieu (môi trường) thành 6M. Hãy chọn một cách hiểu và dùng nhất quán.</p>
+<h3>Vì sao phân loại?</h3>
+<ul><li><b>Chọn đúng biện pháp:</b> Method thì cập nhật quy trình, Man thì đào tạo, Measurement thì bổ sung giám sát.</li><li><b>Phát hiện thiên lệch:</b> mọi nguyên nhân đều ở Machine, Material có thể là đang đổ lỗi khách quan.</li><li><b>Nhìn xu hướng</b> qua nhiều sự cố.</li></ul>
+<div class="hint ok">Ưu tiên nguyên nhân <b>chủ quan, cải tiến được</b>: Man (năng lực chuyên môn, tuân thủ) và Method (quy chuẩn, quy trình, quy định).</div>
+<h3>Cách áp dụng</h3>
+<ol><li>Chạy 5Why trước.</li><li>Gán mỗi nguyên nhân gốc vào một nhóm chính.</li><li>"Do cấu hình sai" thường chưa phải gốc rễ; hỏi vì sao không bị chặn, thường ra Method hoặc Measurement.</li><li>Mỗi nhóm có nguyên nhân gốc phải có biện pháp tương ứng.</li></ol>
+</section>
+
+<section id="b5">
+<h2 class="t">Bước 5: Rút bài học kinh nghiệm</h2>
+<p class="lead">Bài học tốt là quy tắc dùng lại được, không phải kể lại sự việc.</p>
+<p>Trả lời ba câu: Làm thế nào là tốt, thế nào là tệ? Áp dụng mở rộng cho đâu? Có đưa vào runbook, checklist, buổi chia sẻ không? Chia hai nhóm: <b>phát hiện, xử lý nhanh</b> và <b>phương pháp, kỹ thuật, kỹ năng</b>.</p>
+<div class="cols"><div><h3>Yếu</h3><p>"Cần cẩn thận khi dùng async trong ForEach."</p></div>
+<div><h3>Tốt</h3><p>"Khi dùng async trong vòng lặp LINQ ở C#, kiểm tra hành vi bằng test tải và đưa vào checklist code review."</p></div></div>
+<h3>Cách rút bài học</h3>
+<table><tr><th>Nhóm</th><th>Câu hỏi</th><th>Ví dụ</th></tr>
+<tr><td>Làm tốt, cần giữ</td><td>Điều gì giúp phát hiện, xử lý tốt?</td><td>Alert về kênh chat</td></tr>
+<tr><td>Làm chưa tốt</td><td>Điều gì làm chậm, làm tệ hơn?</td><td>Mất 5 phút tìm log vì thiếu quyền</td></tr>
+<tr><td>May mắn</td><td>Điều gì lần sau chưa chắc có?</td><td>Lỗi xảy ra ngoài giờ cao điểm</td></tr></table>
+<ul><li>Cụ thể, hành động được: đọc xong biết làm gì khác đi.</li><li>Hỏi "ở đâu khác cũng có thể xảy ra?".</li><li>Họp rút kinh nghiệm không quy lỗi (blameless postmortem), sớm khi còn nhớ rõ.</li><li>Mỗi bài học truy ngược được về một nguyên nhân cụ thể.</li></ul>
+<h3>Nơi lưu bài học</h3>
+<table><tr><th>Loại</th><th>Nơi lưu</th></tr>
+<tr><td>Phát hiện, chẩn đoán, xử lý nhanh</td><td>Runbook</td></tr>
+<tr><td>Lỗi kỹ thuật cần tránh</td><td>Checklist code review, quy chuẩn lập trình</td></tr>
+<tr><td>Điều cần kiểm tra trước phát hành</td><td>Checklist release</td></tr>
+<tr><td>Kỹ năng, kiến thức mới</td><td>Buổi chia sẻ, tài liệu onboarding</td></tr></table>
+</section>
+
+<section id="b6">
+<h2 class="t">Bước 6: Biện pháp phòng ngừa</h2>
+<p class="lead">Mỗi task rõ về nội dung, người thực hiện, thời hạn.</p>
+<ol class="steps"><li><b>Lập bảng truy vết</b>Nguyên nhân – bài học – biện pháp phải khớp. Biện pháp không truy ngược được thì bỏ hoặc xem lại.</li>
+<li><b>Sinh phương án trên ba hướng</b>Ngăn xảy ra (chặn merge nếu thiếu test); phát hiện sớm (alert, test tải, thí điểm có chỉ số); giảm thiệt hại (feature flag, rollback, runbook).</li>
+<li><b>Chọn theo độ bền vững</b>(1) Loại bỏ hoặc thiết kế lại; (2) tự động, chặn cứng; (3) quy trình, checklist có người kiểm; (4) đào tạo, nhắc nhở. Nguyên nhân Man không dừng ở đào tạo: cần cơ chế bắt lỗi nếu vẫn sai.</li>
+<li><b>Cân nhắc chi phí, rủi ro</b>Rủi ro lớn, dễ lặp lại thì đầu tư mạnh. Chọn vài biện pháp tác động lớn thay vì danh sách dài.</li>
+<li><b>Mở rộng phạm vi</b>Rà soát sản phẩm, module cùng pattern rủi ro; cập nhật quy chuẩn, checklist, runbook; chia sẻ nội bộ.</li>
+<li><b>Giao việc, theo dõi đến khi đóng</b>Nội dung cụ thể, một người chịu trách nhiệm, hạn, tiêu chí hoàn thành, chỉ số hiệu quả.</li></ol>
+<h3>Biện pháp theo nhóm 5M</h3>
+<table><tr><th>Nhóm</th><th>Biện pháp điển hình</th></tr>
+<tr><td>Man</td><td>Đào tạo, kèm cặp, chia sẻ kỹ thuật, bổ sung năng lực cho vị trí review</td></tr>
+<tr><td>Method</td><td>Cập nhật quy trình, quy chuẩn, checklist, runbook</td></tr>
+<tr><td>Machine</td><td>Đổi cấu hình, nâng cấp hạ tầng, công cụ</td></tr>
+<tr><td>Material</td><td>Kiểm tra đầu vào, ràng buộc dữ liệu, rà soát yêu cầu</td></tr>
+<tr><td>Measurement</td><td>Thêm alert, dashboard, kịch bản kiểm thử</td></tr></table>
+<h3>Kiểm chứng hiệu quả</h3>
+<ul><li><b>Quay ngược thời gian:</b> nếu đã có từ trước, sự cố có bị chặn hoặc phát hiện sớm không?</li><li><b>Thử thực tế:</b> tái hiện lỗi để xác nhận alert, gate kích hoạt.</li><li><b>Rà soát sau 1–3 tháng:</b> được áp dụng thật chưa, có sự cố tương tự không?</li><li><b>Người ngoài đọc hiểu</b> ai làm gì, khi nào xong.</li></ul>
+<div class="hint"><b>Tránh:</b> biện pháp chung chung ("tăng cường kiểm tra"); chỉ hotfix; không khớp nhóm 5M; quá nhiều biện pháp nhỏ; không người, không hạn; không theo dõi.</div>
+</section>
+
+<section id="nt">
+<h2 class="t">6 nguyên tắc phân tích hiệu quả</h2>
+<p class="lead">Điểm chung của các hồ sơ chất lượng cao.</p>
+<div class="tabs" role="tablist"></div>
+<div class="pane"><h3>1. Mô tả ngắn gọn, logic, có định lượng</h3><ul><li>Viết câu tóm tắt đầu: cái gì lỗi, từ khi nào, kéo dài bao lâu, ảnh hưởng bao nhiêu.</li><li>Thay từ định tính bằng con số; chi tiết phụ vào phụ lục.</li><li>Kiểm tra: người ngoài đọc 1 phút có nắm được không?</li></ul><p>Ví dụ: "Thí điểm trên 10.000 khách hàng, ~2 triệu hóa đơn trong 3 ngày mà vẫn không phát hiện lỗi."</p></div>
+<div class="pane"><h3>2. Trình bày trực quan</h3><ul><li>Timeline dạng bảng hoặc sơ đồ.</li><li>Ảnh chụp CPU, RAM, error rate trước, trong, sau sự cố.</li><li>Sơ đồ luồng chỉ chỗ lỗi; sơ đồ 5Why dạng cây.</li><li>Mỗi hình có chú thích nói nó chứng minh điều gì.</li></ul></div>
+<div class="pane"><h3>3. Xác định vấn đề ở mọi khâu</h3><ul><li>Rà từng khâu: phân tích, thi công, review, kiểm thử, thí điểm, triển khai, giám sát, xử lý.</li><li>Luôn có ba nhóm: lỗi xảy ra, không phát hiện, xử lý chậm.</li><li>Khâu "không có vấn đề" thì ghi bằng chứng.</li></ul></div>
+<div class="pane"><h3>4. Nguyên nhân là yếu tố chủ quan, cải tiến được</h3><ul><li>Chạy 5Why đến khi gặp Man hoặc Method.</li><li>Với nguyên nhân "khách quan", hỏi: ta đã làm gì để giảm rủi ro?</li><li>Ba câu: có quy trình chưa? Có tuân thủ không? Năng lực đủ không?</li><li>Hỏi về hệ thống, không về cá nhân.</li></ul></div>
+<div class="pane"><h3>5. Bài học có thể mở rộng</h3><ul><li>Viết thành quy tắc dùng lại được.</li><li>Chia hai nhóm: phát hiện/xử lý nhanh; kỹ thuật/kỹ năng.</li><li>Với mỗi bài học, hỏi: ở đâu khác cũng có thể gặp?</li></ul></div>
+<div class="pane"><h3>6. Biện pháp phòng ngừa cụ thể</h3><ul><li>Mỗi nguyên nhân gốc có ít nhất một biện pháp.</li><li>Ưu tiên tự động, chặn cứng hơn nhắc nhở.</li><li>Phủ ba hướng: ngăn xảy ra, phát hiện sớm, xử lý nhanh.</li><li>Có người, hạn, tiêu chí hoàn thành; rà soát lại sau 1–3 tháng.</li></ul></div>
+<h3>Dùng theo giai đoạn</h3>
+<table><tr><th>Giai đoạn</th><th>Nguyên tắc</th></tr><tr><td>Mô tả sự cố</td><td>1, 2</td></tr><tr><td>Xác định vấn đề</td><td>3</td></tr><tr><td>Nguyên nhân gốc rễ</td><td>4 (cùng 5Why, 5M)</td></tr><tr><td>Bài học, phòng ngừa</td><td>5, 6</td></tr></table>
+</section>
+
+<section id="vd">
+<h2 class="t">Ví dụ hồ sơ hoàn chỉnh</h2>
+<p class="lead">Khách hàng không đăng nhập được web app sau release (giả định).</p>
+<h3>1. Mô tả</h3>
+<p>08:41–09:07 ngày 14/03 (26 phút), 1.200 khách hàng (~8% người dùng hoạt động) không đăng nhập được; tỷ lệ request lỗi tăng từ 0,2% lên 37%. Trigger: phát hành 08:15, màn hình đăng nhập gọi thêm API tải cấu hình. Alert kích hoạt lúc 08:55 (chậm 14 phút); mất ~5 phút tìm đúng log; rollback xong 09:07.</p>
+<h3>2. Vấn đề</h3>
+<table><tr><th>#</th><th>Vấn đề</th><th>Nhóm</th></tr>
+<tr><td>1</td><td>API cấu hình bị gọi lặp, treo request</td><td>Xảy ra</td></tr>
+<tr><td>2</td><td>Thí điểm 3 ngày diện lớn không phát hiện lỗi</td><td>Không phát hiện</td></tr>
+<tr><td>3</td><td>Alert chậm 14 phút</td><td>Không phát hiện</td></tr>
+<tr><td>4</td><td>Khắc phục 26 phút, 5 phút tìm log</td><td>Xử lý chậm</td></tr></table>
+<h3>3. Nguyên nhân gốc rễ</h3>
+<table><tr><th>Nguyên nhân</th><th>5M</th><th>Bằng chứng</th></tr>
+<tr><td>Checklist review thiếu mục retry, giới hạn gọi API</td><td>Method</td><td>Checklist hiện hành</td></tr>
+<tr><td>Tiêu chí thí điểm không có chỉ số kỹ thuật</td><td>Method</td><td>Báo cáo thí điểm</td></tr>
+<tr><td>Ngưỡng alert quá rộng</td><td>Measurement</td><td>Cấu hình alert</td></tr>
+<tr><td>Runbook thiếu vị trí log, quyền truy cập</td><td>Method</td><td>Runbook</td></tr>
+<tr><td>Chưa nắm pattern retry an toàn</td><td>Man</td><td>Kết quả review code</td></tr></table>
+<h3>4. Bài học</h3>
+<ul><li>Sự cố sau release: kiểm tra lịch sử deploy trước, rollback sớm nếu thời điểm trùng.</li><li>Cấp sẵn quyền truy cập log cho người trực.</li><li>API mới trong luồng quan trọng phải có giới hạn retry, backoff, timeout.</li><li>Thí điểm phải đo cả chỉ số kỹ thuật.</li></ul>
+<h3>5. Biện pháp phòng ngừa</h3>
+<table><tr><th>Biện pháp</th><th>Hướng</th><th>Người / Hạn</th><th>Hoàn thành khi</th></tr>
+<tr><td>Thêm mục retry, backoff, timeout vào checklist review; lint rule nếu khả thi</td><td>Ngăn xảy ra</td><td>A / 31/03</td><td>Dùng trong ≥5 PR</td></tr>
+<tr><td>Thêm tỷ lệ lỗi, timeout vào tiêu chí thí điểm</td><td>Phát hiện sớm</td><td>B / 31/03</td><td>Mẫu báo cáo mới được duyệt</td></tr>
+<tr><td>Alert cửa sổ 2 phút, ngưỡng 5%</td><td>Phát hiện sớm</td><td>C / 21/03</td><td>Thử với dữ liệu giả lập, kích hoạt đúng</td></tr>
+<tr><td>Bổ sung vị trí log, quyền cho nhóm trực vào runbook</td><td>Xử lý nhanh</td><td>D / 28/03</td><td>Người trực truy cập thử thành công</td></tr>
+<tr><td>Rà soát dịch vụ khác về retry không giới hạn</td><td>Mở rộng</td><td>E / 15/04</td><td>Có danh sách và xử lý lỗi tìm thấy</td></tr></table>
+<p>Rà soát hiệu quả sau 3 tháng.</p>
+</section>
+
+<section id="mau">
+<h2 class="t">Khung mẫu hồ sơ</h2>
+<p class="lead">Sao chép và điền theo thứ tự.</p>
+<button id="cp" class="tabs" style="all:unset"></button>
+<pre id="tpl"># [Mã sự cố] Tiêu đề ngắn gọn
+
+## 1. Mô tả sự cố
+Tóm tắt: [Hệ thống/chức năng] lỗi [biểu hiện] từ [giờ, ngày],
+kéo dài [X phút], ảnh hưởng [N khách hàng / %].
+Trigger: [thay đổi/sự kiện kích hoạt]
+Timeline: | Thời điểm | Sự kiện | Nguồn |
+Phạm vi, mức độ ảnh hưởng: [số liệu, biểu đồ]
+
+## 2. Xác định vấn đề
+| Vấn đề | Nhóm (xảy ra / không phát hiện / xử lý chậm) |
+
+## 3. Nguyên nhân gốc rễ
+5Why: [chuỗi hoặc cây, có bằng chứng]
+| Nguyên nhân gốc | Nhóm 5M | Bằng chứng |
+
+## 4. Bài học kinh nghiệm
+Phát hiện, xử lý nhanh: ...
+Phương pháp, kỹ thuật, kỹ năng: ...
+
+## 5. Biện pháp phòng ngừa
+| Biện pháp | Nguyên nhân | Hướng | Người | Hạn | Tiêu chí hoàn thành |
+Rà soát mở rộng: [hệ thống, quy trình cần cập nhật]</pre>
+</section>
+
+<section id="ck">
+<h2 class="t">Checklist tự đánh giá</h2>
+<p class="lead">Tick từng mục để rà hồ sơ trước khi hoàn thiện.</p>
+<h3>Tổng quát</h3>
+<label class="ck"><input type="checkbox"> Chỉ ra được nguyên nhân gốc rễ</label>
+<label class="ck"><input type="checkbox"> Không có yếu tố chỉ trích, đổ lỗi</label>
+<label class="ck"><input type="checkbox"> Trình bày trực quan, dễ hiểu</label>
+<label class="ck"><input type="checkbox"> Có hình ảnh, bảng biểu, chỉ số rõ ràng</label>
+<label class="ck"><input type="checkbox"> Có kỹ thuật, kỹ năng, bài học chia sẻ được cho dự án khác</label>
+<label class="ck"><input type="checkbox"> Biện pháp phòng ngừa rõ ràng, cụ thể, sát thực tế</label>
+<h3>Theo từng phần</h3>
+<label class="ck"><input type="checkbox"> Mô tả: có tóm tắt đầu, timeline có nguồn, phạm vi định lượng, chỉ nêu sự thật</label>
+<label class="ck"><input type="checkbox"> Vấn đề: đã rà đủ các khâu, có đủ ba nhóm</label>
+<label class="ck"><input type="checkbox"> Nguyên nhân: mỗi câu 5Why có bằng chứng, chạm tới Man hoặc Method, đã phân loại 5M</label>
+<label class="ck"><input type="checkbox"> Bài học: là quy tắc dùng lại được, nêu cách áp dụng cho nơi khác, đã lưu vào runbook/checklist</label>
+<label class="ck"><input type="checkbox"> Phòng ngừa: mỗi gốc rễ có biện pháp; có người, hạn, tiêu chí; đã rà soát hệ thống khác</label>
+<label class="ck"><input type="checkbox"> Kiểm tra cuối: nếu biện pháp đã có từ trước, sự cố có bị chặn hoặc phát hiện sớm không?</label>
+</section>
+
+<div class="pn"><a id="pv" href="#"></a><a id="nx" href="#"></a></div>
+</article></main>
+<script>
+var G=[["",[["home","Trang chủ"]]],["Tổng quan",[["vaitro","Vai trò của phân tích sự cố"],["sailam","Các sai lầm thường gặp"]]],
+["Quy trình phân tích",[["b1","Bước 1: Mô tả sự cố"],["b2","Bước 2: Xác định vấn đề"],["b3","Bước 3: Nguyên nhân gốc rễ (5Why)"],["b4","Bước 4: Phân loại 5M"],["b5","Bước 5: Bài học kinh nghiệm"],["b6","Bước 6: Biện pháp phòng ngừa"]]],
+["Nguyên tắc",[["nt","6 nguyên tắc hiệu quả"]]],["Phụ lục",[["vd","Ví dụ hồ sơ hoàn chỉnh"],["mau","Khung mẫu hồ sơ"],["ck","Checklist tự đánh giá"]]]];
+var all=[],nav=document.getElementById("nav"),h='<h1>Làm sao phân tích sự cố hiệu quả?</h1>';
+G.forEach(function(g){if(g[0])h+="<h2>"+g[0]+"</h2>";g[1].forEach(function(p){all.push(p);h+='<a href="#'+p[0]+'" data-id="'+p[0]+'">'+p[1]+"</a>"})});
+nav.innerHTML=h;
+function show(){
+ var id=location.hash.slice(1);if(!all.some(function(p){return p[0]==id}))id="home";
+ document.querySelectorAll("section").forEach(function(s){s.classList.toggle("on",s.id==id)});
+ document.querySelectorAll("nav a").forEach(function(a){a.classList.toggle("on",a.dataset.id==id)});
+ var i=all.findIndex(function(p){return p[0]==id}),pv=document.getElementById("pv"),nx=document.getElementById("nx");
+ pv.textContent=i>0?"‹ "+all[i-1][1]:"";pv.href=i>0?"#"+all[i-1][0]:"#";
+ nx.textContent=i<all.length-1?all[i+1][1]+" ›":"";nx.href=i<all.length-1?"#"+all[i+1][0]:"#";
+ document.getElementById("main").scrollTop=0;nav.classList.remove("open");
+}
+addEventListener("hashchange",show);show();
+document.getElementById("mb").onclick=function(){nav.classList.toggle("open")};
+(function(){var s=document.getElementById("nt"),t=s.querySelector(".tabs"),P=s.querySelectorAll(".pane");
+ ["1. Ngắn gọn","2. Trực quan","3. Vấn đề","4. Nguyên nhân","5. Bài học","6. Phòng ngừa"].forEach(function(n,i){
+  var b=document.createElement("button");b.textContent=n;b.onclick=function(){t.querySelectorAll("button").forEach(function(x,j){x.classList.toggle("on",j==i);P[j].classList.toggle("on",j==i)})};t.appendChild(b)});
+ t.firstChild.click()})();
+var c=document.getElementById("cp");c.outerHTML='<button id="cp" style="font:inherit;font-size:14px;padding:6px 12px;border:1px solid var(--ln);background:var(--sf);color:var(--tx);border-radius:6px;cursor:pointer">Sao chép khung mẫu</button>';
+document.getElementById("cp").onclick=function(){var b=this,t=document.getElementById("tpl").textContent;
+ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(function(){b.textContent="Đã sao chép"},function(){var r=document.createRange();r.selectNodeContents(document.getElementById("tpl"));var s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Đã chọn, nhấn Ctrl+C"})};
+</script>
+</body>
+</html>
